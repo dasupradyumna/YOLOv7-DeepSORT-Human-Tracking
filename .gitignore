@@ -1,0 +1,6 @@
+# python cache and temp files
+__pycache__/
+
+# video data and network weights
+data/
+models/
