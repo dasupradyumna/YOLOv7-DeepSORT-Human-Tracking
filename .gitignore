@@ -3,4 +3,4 @@ __pycache__/
 
 # video data and network weights
 data/
-models/
+checkpoints/

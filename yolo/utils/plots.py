@@ -18,8 +18,8 @@ import yaml
 from PIL import Image, ImageDraw, ImageFont
 from scipy.signal import butter, filtfilt
 
-from utils.general import xywh2xyxy, xyxy2xywh
-from utils.metrics import fitness
+from .general import xywh2xyxy, xyxy2xywh
+from .metrics import fitness
 
 # Settings
 matplotlib.rc('font', **{'size': 11})
@@ -431,8 +431,8 @@ def plot_results(start=0, stop=0, bucket='', id=(), labels=(), save_dir=''):
 
     ax[1].legend()
     fig.savefig(Path(save_dir) / 'results.png', dpi=200)
-    
-    
+
+
 def output_to_keypoint(output):
     # Convert model output to target format [batch_id, class_id, x, y, w, h, conf]
     targets = []
