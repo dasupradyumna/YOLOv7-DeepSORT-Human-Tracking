@@ -72,7 +72,7 @@ def track_people(input_vid: str, save_path: str):
         time_taken += perf_counter() - start
         frame_i += 1
 
-    print(f"FPS: {frame_i/time_taken:.2f} Hz")
+    print(f"\nFPS: {frame_i/time_taken:.2f} Hz")
     cv2.destroyAllWindows()
 
 
