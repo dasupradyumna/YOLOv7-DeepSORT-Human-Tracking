@@ -1,18 +1,16 @@
 import random
-import os
-import sys
 from typing import List, Tuple, Union
 
 import numpy as np
 import torch
 
-from .models.experimental import attempt_load
-from .utils.datasets import letterbox
-from .utils.general import check_img_size, non_max_suppression, scale_coords
-from .utils.plots import plot_one_box
+from yolo.models.experimental import attempt_load
+from yolo.utils.datasets import letterbox
+from yolo.utils.general import check_img_size, non_max_suppression, scale_coords
+from yolo.utils.plots import plot_one_box
 
 
-class YoloDetector:
+class YOLODetector:
     def __init__(
         self, classes: Union[List, None], conf_th: float = 0.25, iou_th: float = 0.45
     ) -> None:
@@ -47,7 +45,9 @@ class YoloDetector:
         self.colors = [random.sample(range(256), 3) for _ in self.class_list]
 
     @torch.no_grad()
-    def detect( self, img: np.ndarray, draw_bboxes: bool = True) -> Union[np.ndarray, None]:
+    def detect(
+        self, img: np.ndarray, draw_bboxes: bool = True
+    ) -> Union[np.ndarray, None]:
         # prepare the input image
         img, orig = self.preprocess(img)
         if img.ndimension() == 3:

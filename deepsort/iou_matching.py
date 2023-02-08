@@ -1,7 +1,6 @@
-# vim: expandtab:ts=4:sw=4
-from __future__ import absolute_import
 import numpy as np
-from . import linear_assignment
+
+from .linear_assignment import INFTY_COST
 
 
 def iou(bbox, candidates):
@@ -27,11 +26,15 @@ def iou(bbox, candidates):
     candidates_tl = candidates[:, :2]
     candidates_br = candidates[:, :2] + candidates[:, 2:]
 
-    tl = np.c_[np.maximum(bbox_tl[0], candidates_tl[:, 0])[:, np.newaxis],
-               np.maximum(bbox_tl[1], candidates_tl[:, 1])[:, np.newaxis]]
-    br = np.c_[np.minimum(bbox_br[0], candidates_br[:, 0])[:, np.newaxis],
-               np.minimum(bbox_br[1], candidates_br[:, 1])[:, np.newaxis]]
-    wh = np.maximum(0., br - tl)
+    tl = np.c_[
+        np.maximum(bbox_tl[0], candidates_tl[:, 0])[:, np.newaxis],
+        np.maximum(bbox_tl[1], candidates_tl[:, 1])[:, np.newaxis],
+    ]
+    br = np.c_[
+        np.minimum(bbox_br[0], candidates_br[:, 0])[:, np.newaxis],
+        np.minimum(bbox_br[1], candidates_br[:, 1])[:, np.newaxis],
+    ]
+    wh = np.maximum(0.0, br - tl)
 
     area_intersection = wh.prod(axis=1)
     area_bbox = bbox[2:].prod()
@@ -39,8 +42,7 @@ def iou(bbox, candidates):
     return area_intersection / (area_bbox + area_candidates - area_intersection)
 
 
-def iou_cost(tracks, detections, track_indices=None,
-             detection_indices=None):
+def iou_cost(tracks, detections, track_indices=None, detection_indices=None):
     """An intersection over union distance metric.
 
     Parameters
@@ -72,10 +74,10 @@ def iou_cost(tracks, detections, track_indices=None,
     cost_matrix = np.zeros((len(track_indices), len(detection_indices)))
     for row, track_idx in enumerate(track_indices):
         if tracks[track_idx].time_since_update > 1:
-            cost_matrix[row, :] = linear_assignment.INFTY_COST
+            cost_matrix[row, :] = INFTY_COST
             continue
 
         bbox = tracks[track_idx].to_tlwh()
         candidates = np.asarray([detections[i].tlwh for i in detection_indices])
-        cost_matrix[row, :] = 1. - iou(bbox, candidates)
+        cost_matrix[row, :] = 1.0 - iou(bbox, candidates)
     return cost_matrix

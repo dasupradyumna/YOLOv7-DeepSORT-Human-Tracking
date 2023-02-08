@@ -1,10 +1,9 @@
-import random
-
 import numpy as np
 import torch
-import torch.nn as nn
-from .common import Conv, DWConv
+from torch import nn
 from utils.google_utils import attempt_download
+
+from .common import Conv
 
 
 class CrossConv(nn.Module):

@@ -5,47 +5,48 @@ from time import perf_counter
 import cv2
 import numpy as np
 
-from deepsort.api import DeepSORTTracker
-from yolo.api import YoloDetector
+from api.deepsort import DeepSORTTracker
+from api.yolo import YOLODetector
 
 # hyperparameters
 YOLO_MODEL = "./checkpoints/yolov7x.pt"
 REID_MODEL = "./checkpoints/ReID.pb"
-MAX_COS_DIST = 0.4
+MAX_COS_DIST = 0.5
 NN_BUDGET = None
-NMS_MAX_OVERLAP = 1
+IOU_THRESH = 0.5
+MAX_TRACK_AGE = 100
 
 
 def video_writer_same_codec(video: cv2.VideoCapture, save_path: str) -> cv2.VideoWriter:
     w = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = int(video.get(cv2.CAP_PROP_FPS))
-    codec = cv2.VideoWriter_fourcc(*"mp4v")
+    codec = cv2.VideoWriter_fourcc(*"avc1")
     return cv2.VideoWriter(save_path, codec, fps, (w, h))
 
 
 def track_people(input_vid: str, save_path: str):
-    global YOLO_MODEL, REID_MODEL, MAX_COS_DIST, NN_BUDGET, NMS_MAX_OVERLAP
-    # initialize Yolo detector (with weights)
-    yolo = YoloDetector(classes=[0])  # detect only person class
-    yolo.load(YOLO_MODEL)
+    global YOLO_MODEL, REID_MODEL, MAX_COS_DIST, NN_BUDGET, IOU_THRESH
+    # initialize Yolo detector (with weights) to detect only person class
+    detector = YOLODetector(classes=[0], iou_th=IOU_THRESH)
+    detector.load(YOLO_MODEL)
     # initialize DeepSORT tracker
-    dsort = DeepSORTTracker(REID_MODEL, MAX_COS_DIST, NN_BUDGET, NMS_MAX_OVERLAP)
+    tracker = DeepSORTTracker(REID_MODEL, MAX_COS_DIST, NN_BUDGET, MAX_TRACK_AGE)
     # initialize video stream objects
     video = cv2.VideoCapture(input_vid)
     output = video_writer_same_codec(video, save_path)
     # core loop
     frame_i = 0
+    time_taken = 0
     while True:
+        start = perf_counter()
         # read input video
         ret, frame = video.read()
         if not ret:
-            print("Video has ended or failed.")
             break
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame_i += 1
         # get detections
-        detections = yolo.detect(frame.copy(), draw_bboxes=False)  # is copy() needed?
+        detections = detector.detect(frame, draw_bboxes=False)
         if detections is None:
             bboxes = []
             scores = []
@@ -55,17 +56,23 @@ def track_people(input_vid: str, save_path: str):
             bboxes, scores, classes = np.hsplit(detections, [4, 5])
             bboxes[:, 2:] = bboxes[:, 2:] - bboxes[:, :2]
             n_objects = detections.shape[0]
-        names = np.array([yolo.class_list[int(classes[i])] for i in range(n_objects)])
+        names = np.array(
+            [detector.class_list[int(classes[i])] for i in range(n_objects)]
+        )
         # track targets
-        dsort.track(frame, bboxes, scores.flatten(), names)
+        tracker.track(frame, bboxes, scores.flatten(), names)
         # write to output video
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         output.write(frame)
         # display
         cv2.imshow("Processed", frame)
         if cv2.waitKey(1) & 0xFF == ord("q"):
+            print("<< User has terminated the process >>")
             break
+        time_taken += perf_counter() - start
+        frame_i += 1
 
+    print(f"FPS: {frame_i/time_taken:.2f} Hz")
     cv2.destroyAllWindows()
 
 
@@ -84,7 +91,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--save-path",
         type=str,
-        default="./data/output.mp4",  # TODO change to MP4
+        default="./data/output.mp4",
         help="path to save file the output video",
     )
 
@@ -93,4 +100,4 @@ if __name__ == "__main__":
     args.save_path = path.abspath(args.save_path)
     start = perf_counter()
     track_people(args.input_vid, args.save_path)
-    print(f"\n Time taken: {perf_counter()-start} s")
+    print(f"Time taken: {perf_counter()-start:.2f} s")

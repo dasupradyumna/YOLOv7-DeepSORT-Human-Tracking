@@ -2,27 +2,24 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .detection import Detection
-from .generate_detections import create_box_encoder
-from .nn_matching import NearestNeighborDistanceMetric
-from .preprocessing import non_max_suppression
-from .track import Track
-from .tracker import Tracker
+from deepsort.detection import Detection
+from deepsort.generate_detections import create_box_encoder
+from deepsort.nn_matching import NearestNeighborDistanceMetric
+from deepsort.track import Track
+from deepsort.tracker import Tracker
 
 
 class DeepSORTTracker:
-    def __init__(self, reid_model, cosine_thresh, nn_budget, nms_max_overlap):
+    def __init__(self, reid_model, cosine_thresh, nn_budget, max_track_age):
         self.encoder = create_box_encoder(reid_model, batch_size=1)
         self.tracker = Tracker(
-            NearestNeighborDistanceMetric("cosine", cosine_thresh, nn_budget)
+            NearestNeighborDistanceMetric("cosine", cosine_thresh, nn_budget),
+            max_age=max_track_age,
         )
-        self.nms_max_overlap = nms_max_overlap
 
     def track(self, frame, bboxes, scores, classes):
         feats = self.encoder(frame, bboxes)
-        indices = non_max_suppression(bboxes, self.nms_max_overlap, scores)
         dets = [Detection(*args) for args in zip(bboxes, scores, feats, classes)]
-        dets = [dets[i] for i in indices]
 
         self.tracker.predict()
         self.tracker.update(dets)
