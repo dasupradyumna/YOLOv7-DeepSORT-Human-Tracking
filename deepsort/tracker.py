@@ -106,7 +106,7 @@ class Tracker:
         ]
 
         # Associate confirmed tracks using appearance features.
-        (matches_a, unmatched_tracks_a, unmatched_detections,) = matching_cascade(
+        matches_a, unmatched_tracks_a, unmatched_detections = matching_cascade(
             gated_metric,
             self.metric.matching_threshold,
             self.max_age,
@@ -122,7 +122,7 @@ class Tracker:
         unmatched_tracks_a = [
             k for k in unmatched_tracks_a if self.tracks[k].time_since_update != 1
         ]
-        (matches_b, unmatched_tracks_b, unmatched_detections,) = min_cost_matching(
+        matches_b, unmatched_tracks_b, unmatched_detections = min_cost_matching(
             iou_cost,
             self.max_iou_distance,
             self.tracks,
@@ -145,7 +145,6 @@ class Tracker:
                 self.n_init,
                 self.max_age,
                 detection.feature,
-                detection.class_name,
             )
         )
         self._next_id += 1
